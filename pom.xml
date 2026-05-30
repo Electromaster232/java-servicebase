@@ -52,7 +52,7 @@
 
     <groupId>me.djelectro</groupId>
     <artifactId>java-servicebase</artifactId>
-    <version>1.1-SNAPSHOT</version>
+    <version>1.2-SNAPSHOT</version>
 
     <distributionManagement>
         <repository>
