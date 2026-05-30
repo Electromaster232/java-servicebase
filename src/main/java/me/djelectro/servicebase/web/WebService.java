@@ -101,7 +101,7 @@ public class WebService<T extends WebServiceParams> implements SubService<T> {
 
     private void enableRoutePackage(String packageName) throws NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
 
-        Set<Class> classes = ClassFinder.findAllClassesInPackage(params.packageClasspathRoot + "." + packageName);
+        Set<Class<?>> classes = ClassFinder.findAllClassesInPackage(params.packageClasspathRoot + "." + packageName);
         logger.info("Found {} classes under package {}", classes.size(), params.packageClasspathRoot);
         for (Class<?> theClass : classes) {
             logger.info("Enabling route package {}", theClass.getSimpleName());
