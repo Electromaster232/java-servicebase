@@ -14,6 +14,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Base class that all modules that define application routes should extend.
@@ -46,7 +47,7 @@ public abstract class Routes<T extends WebServiceParams> {
   /**
    * The map that gets created by registerRoutes when you initialize this class.
    */
-  private final HashMap<Route, Method> accessMap = new HashMap<>();
+  private final HashMap<Route, Map.Entry<Method, Map<String, Annotation>>> accessMap = new HashMap<>();
 
 
 
@@ -99,12 +100,17 @@ public abstract class Routes<T extends WebServiceParams> {
       Annotation[] annotations = method.getDeclaredAnnotations();
       for (Annotation annotation : annotations) {
         if (annotation instanceof Route) {
+          // Get all annotations and map them then pass to authorizer
+          // This now allows the user to specify any data they want
+          Map<String, Annotation> methodAnnotations = new HashMap<>();
+          for(Annotation methodAnnotation : method.getAnnotations()) {
+            methodAnnotations.put(methodAnnotation.annotationType().getName(), methodAnnotation);
+          }
+          accessMap.put(((Route) annotation), Map.entry(method, methodAnnotations));
           if (((Route) annotation).type() == RouteType.GET) {
             app.unsafe.routes.get(urlBase + ((Route) annotation).url(), ctx -> method.invoke(this, ctx));
-            accessMap.put(((Route) annotation), method);
           } else if (((Route) annotation).type() == RouteType.POST) {
             app.unsafe.routes.post(urlBase + ((Route) annotation).url(), ctx -> method.invoke(this, ctx));
-            accessMap.put(((Route) annotation), method);
           } else if (((Route) annotation).type() == RouteType.PUT)
             app.unsafe.routes.put(urlBase + ((Route) annotation).url(), ctx -> method.invoke(this, ctx));
           else if (((Route) annotation).type() == RouteType.DEL)
@@ -129,7 +135,7 @@ public abstract class Routes<T extends WebServiceParams> {
       String myPath = ctx.path();
 
       Route routeInfo = null;
-      Method routeMethod = null;
+      Map.Entry<Method, Map<String, Annotation>> routeMethod = null;
       for (Route i : accessMap.keySet()) {
         if ((urlBase + i.url()).equals(myPath)) {
           routeMethod = accessMap.get(i);
@@ -142,7 +148,8 @@ public abstract class Routes<T extends WebServiceParams> {
 
       boolean result;
       Authorizer a = (Authorizer) routeInfo.accessMethod().getConstructors()[0].newInstance();
-      result = a.authorize(ctx);
+
+      result = a.authorize(ctx, routeMethod.getValue());
 
       if (!result) {
         throw new ForbiddenResponse("Unauthorized");
